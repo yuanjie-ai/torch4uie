@@ -1,0 +1,11 @@
+meutils
+colorlog
+transformers
+packaging
+sentencepiece
+protobuf
+
+fast-tokenizer-python
+
+onnxruntime
+onnxconverter_common
