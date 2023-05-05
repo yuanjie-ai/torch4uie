@@ -10,8 +10,6 @@
 pip install -U torch4uie
 ```
 
-## [Docs](https://yuanjie-ai.github.io/ChatLLM/)
-
 ## Usages
 
 ```python
