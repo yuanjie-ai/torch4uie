@@ -22,7 +22,6 @@ from typing import List, Optional, Tuple, Union
 
 import torch
 import torch.utils.checkpoint
-from packaging import version
 from torch import nn
 from transformers import PretrainedConfig
 

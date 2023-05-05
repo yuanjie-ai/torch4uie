@@ -15,14 +15,12 @@
 # limitations under the License.
 """PyTorch ERNIE model."""
 
-
 import math
 import os
 from typing import List, Optional, Tuple, Union
 
 import torch
 import torch.utils.checkpoint
-from packaging import version
 from torch import nn
 from transformers import PretrainedConfig
 
@@ -113,27 +111,27 @@ class ErnieConfig(PretrainedConfig):
     model_type = "ernie"
 
     def __init__(
-        self,
-        vocab_size=30522,
-        hidden_size=768,
-        num_hidden_layers=12,
-        num_attention_heads=12,
-        intermediate_size=3072,
-        hidden_act="gelu",
-        hidden_dropout_prob=0.1,
-        attention_probs_dropout_prob=0.1,
-        max_position_embeddings=512,
-        type_vocab_size=2,
-        initializer_range=0.02,
-        layer_norm_eps=1e-12,
-        pad_token_id=0,
-        position_embedding_type="absolute",
-        use_cache=True,
-        classifier_dropout=None,
-        task_type_vocab_size=3,
-        task_id=0,
-        use_task_id=False,
-        **kwargs
+            self,
+            vocab_size=30522,
+            hidden_size=768,
+            num_hidden_layers=12,
+            num_attention_heads=12,
+            intermediate_size=3072,
+            hidden_act="gelu",
+            hidden_dropout_prob=0.1,
+            attention_probs_dropout_prob=0.1,
+            max_position_embeddings=512,
+            type_vocab_size=2,
+            initializer_range=0.02,
+            layer_norm_eps=1e-12,
+            pad_token_id=0,
+            position_embedding_type="absolute",
+            use_cache=True,
+            classifier_dropout=None,
+            task_type_vocab_size=3,
+            task_id=0,
+            use_task_id=False,
+            **kwargs
     ):
         super().__init__(pad_token_id=pad_token_id, **kwargs)
 
@@ -198,9 +196,9 @@ def load_tf_weights_in_ernie(model, config, tf_checkpoint_path):
         # adam_v and adam_m are variables used in AdamWeightDecayOptimizer to calculated m and v
         # which are not required for using pretrained model
         if any(
-            n in ["adam_v", "adam_m", "AdamWeightDecayOptimizer",
-                  "AdamWeightDecayOptimizer_1", "global_step"]
-            for n in name
+                n in ["adam_v", "adam_m", "AdamWeightDecayOptimizer",
+                      "AdamWeightDecayOptimizer_1", "global_step"]
+                for n in name
         ):
             logger.info(f"Skipping {'/'.join(name)}")
             continue
@@ -270,15 +268,15 @@ class ErnieEmbeddings(nn.Module):
             config, "position_embedding_type", "absolute")
         self.register_buffer("position_ids", torch.arange(
             config.max_position_embeddings).expand((1, -1)))
-        if version.parse(torch.__version__) > version.parse("1.6.0"):
-            self.register_buffer(
-                "token_type_ids",
-                torch.zeros(self.position_ids.size(), dtype=torch.long),
-                persistent=False,
-            )
+        self.register_buffer(
+            "token_type_ids",
+            torch.zeros(self.position_ids.size(), dtype=torch.long),
+            persistent=False,
+        )
 
     def forward(
-        self, input_ids=None, token_type_ids=None, position_ids=None, task_type_ids=None, inputs_embeds=None, past_key_values_length=0
+            self, input_ids=None, token_type_ids=None, position_ids=None, task_type_ids=None, inputs_embeds=None,
+            past_key_values_length=0
     ):
         if input_ids is not None:
             input_shape = input_ids.size()
@@ -289,7 +287,7 @@ class ErnieEmbeddings(nn.Module):
 
         if position_ids is None:
             position_ids = self.position_ids[:,
-                                             past_key_values_length: seq_length + past_key_values_length]
+                           past_key_values_length: seq_length + past_key_values_length]
 
         # Setting the token_type_ids to the registered buffer in constructor where it is all zeros, which usually occurs
         # when its auto-generated, registered buffer helps users when tracing the model without passing token_type_ids, solves
@@ -357,19 +355,19 @@ class ErnieSelfAttention(nn.Module):
 
     def transpose_for_scores(self, x):
         new_x_shape = x.size()[
-            :-1] + (self.num_attention_heads, self.attention_head_size)
+                      :-1] + (self.num_attention_heads, self.attention_head_size)
         x = x.view(new_x_shape)
         return x.permute(0, 2, 1, 3)
 
     def forward(
-        self,
-        hidden_states: torch.Tensor,
-        attention_mask: Optional[torch.FloatTensor] = None,
-        head_mask: Optional[torch.FloatTensor] = None,
-        encoder_hidden_states: Optional[torch.FloatTensor] = None,
-        encoder_attention_mask: Optional[torch.FloatTensor] = None,
-        past_key_value: Optional[Tuple[Tuple[torch.FloatTensor]]] = None,
-        output_attentions: Optional[bool] = False,
+            self,
+            hidden_states: torch.Tensor,
+            attention_mask: Optional[torch.FloatTensor] = None,
+            head_mask: Optional[torch.FloatTensor] = None,
+            encoder_hidden_states: Optional[torch.FloatTensor] = None,
+            encoder_attention_mask: Optional[torch.FloatTensor] = None,
+            past_key_value: Optional[Tuple[Tuple[torch.FloatTensor]]] = None,
+            output_attentions: Optional[bool] = False,
     ) -> Tuple[torch.Tensor]:
         mixed_query_layer = self.query(hidden_states)
 
@@ -436,10 +434,10 @@ class ErnieSelfAttention(nn.Module):
                 relative_position_scores_key = torch.einsum(
                     "bhrd,lrd->bhlr", key_layer, positional_embedding)
                 attention_scores = attention_scores + \
-                    relative_position_scores_query + relative_position_scores_key
+                                   relative_position_scores_query + relative_position_scores_key
 
         attention_scores = attention_scores / \
-            math.sqrt(self.attention_head_size)
+                           math.sqrt(self.attention_head_size)
         if attention_mask is not None:
             # Apply the attention mask is (precomputed for all layers in ErnieModel forward() function)
             attention_scores = attention_scores + attention_mask
@@ -459,7 +457,7 @@ class ErnieSelfAttention(nn.Module):
 
         context_layer = context_layer.permute(0, 2, 1, 3).contiguous()
         new_context_layer_shape = context_layer.size()[
-            :-2] + (self.all_head_size,)
+                                  :-2] + (self.all_head_size,)
         context_layer = context_layer.view(new_context_layer_shape)
 
         outputs = (context_layer, attention_probs) if output_attentions else (
@@ -508,20 +506,20 @@ class ErnieAttention(nn.Module):
 
         # Update hyper params and store pruned heads
         self.self.num_attention_heads = self.self.num_attention_heads - \
-            len(heads)
+                                        len(heads)
         self.self.all_head_size = self.self.attention_head_size * \
-            self.self.num_attention_heads
+                                  self.self.num_attention_heads
         self.pruned_heads = self.pruned_heads.union(heads)
 
     def forward(
-        self,
-        hidden_states: torch.Tensor,
-        attention_mask: Optional[torch.FloatTensor] = None,
-        head_mask: Optional[torch.FloatTensor] = None,
-        encoder_hidden_states: Optional[torch.FloatTensor] = None,
-        encoder_attention_mask: Optional[torch.FloatTensor] = None,
-        past_key_value: Optional[Tuple[Tuple[torch.FloatTensor]]] = None,
-        output_attentions: Optional[bool] = False,
+            self,
+            hidden_states: torch.Tensor,
+            attention_mask: Optional[torch.FloatTensor] = None,
+            head_mask: Optional[torch.FloatTensor] = None,
+            encoder_hidden_states: Optional[torch.FloatTensor] = None,
+            encoder_attention_mask: Optional[torch.FloatTensor] = None,
+            past_key_value: Optional[Tuple[Tuple[torch.FloatTensor]]] = None,
+            output_attentions: Optional[bool] = False,
     ) -> Tuple[torch.Tensor]:
         self_outputs = self.self(
             hidden_states,
@@ -586,14 +584,14 @@ class ErnieLayer(nn.Module):
         self.output = ErnieOutput(config)
 
     def forward(
-        self,
-        hidden_states: torch.Tensor,
-        attention_mask: Optional[torch.FloatTensor] = None,
-        head_mask: Optional[torch.FloatTensor] = None,
-        encoder_hidden_states: Optional[torch.FloatTensor] = None,
-        encoder_attention_mask: Optional[torch.FloatTensor] = None,
-        past_key_value: Optional[Tuple[Tuple[torch.FloatTensor]]] = None,
-        output_attentions: Optional[bool] = False,
+            self,
+            hidden_states: torch.Tensor,
+            attention_mask: Optional[torch.FloatTensor] = None,
+            head_mask: Optional[torch.FloatTensor] = None,
+            encoder_hidden_states: Optional[torch.FloatTensor] = None,
+            encoder_attention_mask: Optional[torch.FloatTensor] = None,
+            past_key_value: Optional[Tuple[Tuple[torch.FloatTensor]]] = None,
+            output_attentions: Optional[bool] = False,
     ) -> Tuple[torch.Tensor]:
         # decoder uni-directional self-attention cached key/values tuple is at positions 1,2
         self_attn_past_key_value = past_key_value[:
@@ -624,7 +622,7 @@ class ErnieLayer(nn.Module):
 
             # cross_attn cached key/values tuple is at positions 3,4 of past_key_value tuple
             cross_attn_past_key_value = past_key_value[-2:
-                                                       ] if past_key_value is not None else None
+                                        ] if past_key_value is not None else None
             cross_attention_outputs = self.crossattention(
                 attention_output,
                 attention_mask,
@@ -664,21 +662,21 @@ class ErnieEncoder(nn.Module):
         super().__init__()
         self.config = config
         self.layer = nn.ModuleList([ErnieLayer(config)
-                                   for _ in range(config.num_hidden_layers)])
+                                    for _ in range(config.num_hidden_layers)])
         self.gradient_checkpointing = False
 
     def forward(
-        self,
-        hidden_states: torch.Tensor,
-        attention_mask: Optional[torch.FloatTensor] = None,
-        head_mask: Optional[torch.FloatTensor] = None,
-        encoder_hidden_states: Optional[torch.FloatTensor] = None,
-        encoder_attention_mask: Optional[torch.FloatTensor] = None,
-        past_key_values: Optional[Tuple[Tuple[torch.FloatTensor]]] = None,
-        use_cache: Optional[bool] = None,
-        output_attentions: Optional[bool] = False,
-        output_hidden_states: Optional[bool] = False,
-        return_dict: Optional[bool] = True,
+            self,
+            hidden_states: torch.Tensor,
+            attention_mask: Optional[torch.FloatTensor] = None,
+            head_mask: Optional[torch.FloatTensor] = None,
+            encoder_hidden_states: Optional[torch.FloatTensor] = None,
+            encoder_attention_mask: Optional[torch.FloatTensor] = None,
+            past_key_values: Optional[Tuple[Tuple[torch.FloatTensor]]] = None,
+            use_cache: Optional[bool] = None,
+            output_attentions: Optional[bool] = False,
+            output_hidden_states: Optional[bool] = False,
+            return_dict: Optional[bool] = True,
     ) -> Union[Tuple[torch.Tensor], BaseModelOutputWithPastAndCrossAttentions]:
         all_hidden_states = () if output_hidden_states else None
         all_self_attentions = () if output_attentions else None
@@ -732,7 +730,7 @@ class ErnieEncoder(nn.Module):
                 all_self_attentions = all_self_attentions + (layer_outputs[1],)
                 if self.config.add_cross_attention:
                     all_cross_attentions = all_cross_attentions + \
-                        (layer_outputs[2],)
+                                           (layer_outputs[2],)
 
         if output_hidden_states:
             all_hidden_states = all_hidden_states + (hidden_states,)
@@ -925,21 +923,21 @@ class ErnieModel(ErniePreTrainedModel):
         config_class=_CONFIG_FOR_DOC,
     )
     def forward(
-        self,
-        input_ids: Optional[torch.Tensor] = None,
-        attention_mask: Optional[torch.Tensor] = None,
-        token_type_ids: Optional[torch.Tensor] = None,
-        position_ids: Optional[torch.Tensor] = None,
-        task_type_ids: Optional[torch.Tensor] = None,
-        head_mask: Optional[torch.Tensor] = None,
-        inputs_embeds: Optional[torch.Tensor] = None,
-        encoder_hidden_states: Optional[torch.Tensor] = None,
-        encoder_attention_mask: Optional[torch.Tensor] = None,
-        past_key_values: Optional[List[torch.FloatTensor]] = None,
-        use_cache: Optional[bool] = None,
-        output_attentions: Optional[bool] = None,
-        output_hidden_states: Optional[bool] = None,
-        return_dict: Optional[bool] = None,
+            self,
+            input_ids: Optional[torch.Tensor] = None,
+            attention_mask: Optional[torch.Tensor] = None,
+            token_type_ids: Optional[torch.Tensor] = None,
+            position_ids: Optional[torch.Tensor] = None,
+            task_type_ids: Optional[torch.Tensor] = None,
+            head_mask: Optional[torch.Tensor] = None,
+            inputs_embeds: Optional[torch.Tensor] = None,
+            encoder_hidden_states: Optional[torch.Tensor] = None,
+            encoder_attention_mask: Optional[torch.Tensor] = None,
+            past_key_values: Optional[List[torch.FloatTensor]] = None,
+            use_cache: Optional[bool] = None,
+            output_attentions: Optional[bool] = None,
+            output_hidden_states: Optional[bool] = None,
+            return_dict: Optional[bool] = None,
     ) -> Union[Tuple[torch.Tensor], BaseModelOutputWithPoolingAndCrossAttentions]:
         r"""
         encoder_hidden_states  (`torch.FloatTensor` of shape `(batch_size, sequence_length, hidden_size)`, *optional*):

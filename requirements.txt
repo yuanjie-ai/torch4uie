@@ -1,7 +1,6 @@
 meutils
 colorlog
 transformers
-packaging
 sentencepiece
 protobuf
 
